@@ -1,0 +1,86 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop, master]
+  pull_request:
+    branches: [main, develop, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    name: quality-checks
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: node-setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: install
+        run: npm ci
+
+      - name: audit
+        run: npm audit --audit-level=high
+
+      - name: lint
+        run: npm run lint
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    name: secret-scan
+    steps:
+      - name: scan
+        uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
+
+  test:
+    runs-on: ubuntu-latest
+    name: unit-test
+    needs: quality
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: node-setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: install
+        run: npm ci
+
+      - name: run-test
+        run: npm run test -- --run
+
+  build:
+    runs-on: ubuntu-latest
+    name: build-step
+    needs: [quality, test]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: node-setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: install
+        run: npm ci
+
+      - name: build
+        run: npm run build
+
+      - name: build-types
+        run: npm run build:types
+
+      - name: verify
+        run: |
+          if [ ! -d "dist" ]; then exit 1; fi
+          if [ ! -f "dist/index.js" ]; then exit 1; fi
