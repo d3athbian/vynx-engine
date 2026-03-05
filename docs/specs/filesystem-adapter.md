@@ -1,5 +1,7 @@
 # SPEC: FileSystem Adapter
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 Adapter de almacenamiento usando File System Access API para Smart TVs (Tizen, WebOS).

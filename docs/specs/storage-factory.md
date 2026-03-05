@@ -1,8 +1,52 @@
 # SPEC: Storage Factory
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 Factory que crea el adapter de almacenamiento apropiado según la plataforma detectada.
+
+## 🎯 Patrón Adapter (Strategy Pattern)
+
+El objetivo es que **ImageEngine siempre use la misma interfaz** (`IStorageAdapter`) sin conocer la implementación específica. Los métodos son los mismos, pero la tecnología de almacenamiento varía según el device:
+
+```
+ImageEngine
+    │
+    ▼
+┌─────────────────────────────┐
+│     IStorageAdapter         │  ← Interfaz COMÚN
+│  (save, get, delete, etc)  │
+└─────────────────────────────┘
+    │
+    ├──→ IndexedDBAdapter    (web / browser)
+    ├──→ FileSystemAdapter  (Tizen / WebOS / Smart TVs)
+    └──→ MemoryAdapter      (fallback / WebView)
+```
+
+## Interfaz IStorageAdapter
+
+Todos los adapters deben implementar esta interfaz:
+
+```typescript
+export interface StorageMetadata {
+  url: string;
+  size: number;
+  mimeType: string;
+  timestamp: number;
+  expiresAt?: number;
+}
+
+export interface IStorageAdapter {
+  save(key: string, data: Blob, metadata: StorageMetadata): Promise<void>;
+  get(key: string): Promise<{ data: Blob; metadata: StorageMetadata } | null>;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+  getQuotaUsage(): Promise<number>;
+}
+```
+
+**ImageEngine solo conoce esta interfaz** - no sabe si usa IndexedDB, FileSystem o Memory.
 
 ## Problem
 
@@ -190,10 +234,13 @@ export * from './core/storage/StorageFactory';
 
 ```bash
 # Compila
-bun run build
+npm run build
 
 # Tipos correctos
 npx tsc --noEmit
+
+# Lint
+npx biome check .
 
 # Dependencias resueltas (sin errores de import)
 ```

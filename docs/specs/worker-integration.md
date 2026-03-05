@@ -1,5 +1,7 @@
 # SPEC: Worker Integration
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 Mover toda la lógica pesada (fetch, cache I/O) a un Web Worker para mantener el main thread libre.
@@ -261,7 +263,13 @@ export default {
 
 ```bash
 # Worker compila y se genera correctamente
-bun run build
+npm run build
+
+# Tipos correctos
+npx tsc --noEmit
+
+# Lint
+npx biome check .
 
 # El worker se carga sin errores
 # Revisar network tab en DevTools
