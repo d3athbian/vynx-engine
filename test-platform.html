@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VYNX Engine - Platform Detector Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+
+    h1 {
+      color: #00d9ff;
+    }
+
+    .card {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .label {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .value {
+      color: #00d9ff;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-right: 8px;
+    }
+
+    .badge-true {
+      background: #00d9ff;
+      color: #1a1a2e;
+    }
+
+    .badge-false {
+      background: #ff6b6b;
+      color: #1a1a2e;
+    }
+
+    pre {
+      background: #0f0f23;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🔍 VYNX Engine - Platform Detector</h1>
+
+  <div class="card">
+    <div class="label">DETECTED PLATFORM</div>
+    <div class="value" id="platform">Loading...</div>
+  </div>
+
+  <div class="card">
+    <div class="label">CAPABILITIES</div>
+    <pre id="capabilities">Loading...</pre>
+  </div>
+
+  <div class="card">
+    <div class="label">OPTIMAL STORAGE</div>
+    <div class="value" id="storage">Loading...</div>
+  </div>
+
+  <div class="card">
+    <div class="label">USER AGENT</div>
+    <div class="value" style="font-size: 14px;" id="ua">Loading...</div>
+  </div>
+
+  <script type="module">
+    import { detectPlatform, getPlatformCapabilities, getOptimalStorageType } from './dist/index.js?v=2';
+
+    async function run() {
+      // Platform
+      const platform = detectPlatform();
+      document.getElementById('platform').textContent = platform;
+
+      // User Agent
+      document.getElementById('ua').textContent = navigator.userAgent;
+
+      // Capabilities
+      const capabilities = await getPlatformCapabilities(platform);
+      document.getElementById('capabilities').textContent = JSON.stringify(capabilities, null, 2);
+
+      // Storage
+      const storage = getOptimalStorageType(platform, capabilities);
+      document.getElementById('storage').textContent = storage;
+    }
+
+    run().catch(console.error);
+  </script>
+</body>
+
+</html>
