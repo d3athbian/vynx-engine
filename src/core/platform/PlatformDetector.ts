@@ -1,27 +1,57 @@
 import { getNavigatorProperty, getUserAgent, getWindowProperty } from "../../utils/browser";
-import { DEFAULT_QUOTA_MB, UA_REGEX } from "../config/platform";
+import {
+  DEFAULT_QUOTA_MB,
+  MIN_TIZEN_VERSION,
+  MIN_WEBOS_VERSION,
+  UA_REGEX,
+} from "../config/platform";
 import type { Platform, PlatformCapabilities, StorageType } from "./PlatformDetector.type";
 
+function getTizenVersion(): number | null {
+  const ua = getUserAgent();
+  const match = ua.match(/Tizen\s*(\d+\.?\d*)/i);
+  if (match) {
+    const version = Number.parseFloat(match[1]);
+    return version;
+  }
+  return null;
+}
+
+function getWebOSVersion(): number | null {
+  const ua = getUserAgent();
+  const match = ua.match(/webOS\.TV-(\d+)/i);
+  if (match) {
+    return Number.parseInt(match[1], 10);
+  }
+  const legacyMatch = ua.match(/Web0S.*(?:WEBOS|WEBOS\.TV)[^\d]*(\d+)/i);
+  if (legacyMatch) {
+    return Number.parseInt(legacyMatch[1], 10);
+  }
+  return null;
+}
+
 function isTizen(): boolean {
-  return UA_REGEX.TIZEN.test(getUserAgent());
+  if (!UA_REGEX.TIZEN.test(getUserAgent())) return false;
+  const version = getTizenVersion();
+  if (version === null) return true;
+  return version >= MIN_TIZEN_VERSION;
 }
 
 function isWebOS(): boolean {
-  return UA_REGEX.WEB_OS.test(getUserAgent());
+  if (!UA_REGEX.WEB_OS.test(getUserAgent())) return false;
+  const version = getWebOSVersion();
+  if (version === null) return true;
+  return version >= MIN_WEBOS_VERSION;
 }
 
 function isWebView(): boolean {
   const ua = getUserAgent();
-  const isIOSWebView =
-    ua.includes("Safari") &&
-    !ua.includes("Chrome") &&
-    !ua.includes("Mobile") &&
-    getWindowProperty("webkit") !== undefined;
-  const isAndroidWebView =
-    ua.includes("wv") ||
-    ua.includes("WebView") ||
-    (ua.includes("Mobile") && !ua.includes("Chrome"));
-  return isIOSWebView || isAndroidWebView;
+  if (ua.includes("wv")) return true;
+  if (ua.includes("WebView") && !ua.includes("Safari")) return true;
+  if (ua.includes("Samsung") && ua.includes("Service")) {
+    return true;
+  }
+  return false;
 }
 
 function hasIndexedDB(): boolean {
@@ -41,19 +71,16 @@ function hasBlob(): boolean {
 }
 
 async function getStorageQuota(): Promise<number> {
-  if (
-    typeof navigator !== "undefined" &&
-    navigator.storage &&
-    typeof navigator.storage.estimate === "function"
-  ) {
-    try {
-      // Use .call to be absolutely sure about the context
-      const estimate = navigator.storage.estimate.bind(navigator.storage);
-      const { quota } = await estimate();
-      return Math.floor((quota ?? 0) / (1024 * 1024));
-    } catch (error) {
-      console.warn("[PlatformDetector] Failed to estimate storage quota:", error);
+  try {
+    const nav = getNavigatorProperty("userAgent");
+    if (!nav) return DEFAULT_QUOTA_MB;
+
+    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
+      const estimate = await navigator.storage.estimate();
+      return Math.floor((estimate.quota ?? 0) / (1024 * 1024));
     }
+  } catch {
+    // Ignore errors
   }
 
   return DEFAULT_QUOTA_MB;
@@ -78,13 +105,18 @@ function detectLowEndDevice(): boolean {
 }
 
 export function detectPlatform(): Platform {
-  const nav = getNavigatorProperty("userAgent");
-  if (nav === undefined) return "unknown";
+  if (!getNavigatorProperty("userAgent")) return "unknown";
 
   if (isTizen()) return "tizen";
   if (isWebOS()) return "webos";
   if (isWebView()) return "webview";
   return "web";
+}
+
+export function getPlatformVersion(platform: Platform): number | null {
+  if (platform === "tizen") return getTizenVersion();
+  if (platform === "webos") return getWebOSVersion();
+  return null;
 }
 
 export async function getPlatformCapabilities(_platform: Platform): Promise<PlatformCapabilities> {
@@ -107,9 +139,22 @@ export function getOptimalStorageType(
   _platform: Platform,
   capabilities: PlatformCapabilities,
 ): StorageType {
-  if (capabilities.isTV && capabilities.supportsFileSystem) return "filesystem";
-  if (capabilities.supportsIndexedDB) return "indexeddb";
-  return "memory";
+  let storage: StorageType;
+  if (capabilities.isTV && capabilities.supportsFileSystem) {
+    storage = "filesystem";
+  } else if (capabilities.supportsIndexedDB) {
+    storage = "indexeddb";
+  } else {
+    storage = "memory";
+  }
+  console.log("[VYNX:PlatformDetector]", {
+    platform: _platform,
+    isTV: capabilities.isTV,
+    supportsFileSystem: capabilities.supportsFileSystem,
+    supportsIndexedDB: capabilities.supportsIndexedDB,
+    selectedStorage: storage,
+  });
+  return storage;
 }
 
 export type { Platform, StorageType, PlatformCapabilities };

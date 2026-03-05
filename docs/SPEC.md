@@ -58,25 +58,24 @@ Cada módulo tiene su propio spec en `docs/specs/`:
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [SPEC: Project Setup - Vite](specs/project-setup-vite.md) | 🔄 In Progress | High |
-| [SPEC: Platform Detector](specs/platform-detector.md) | ❌ Pending | High |
-| [SPEC: Storage Factory](specs/storage-factory.md) | ❌ Pending | High |
+| [SPEC: Project Setup - Vite](specs/project-setup-vite.md) | ✅ Completed | High |
+| [SPEC: Platform Detector](specs/platform-detector.md) | ✅ Completed | High |
+| [SPEC: Storage Factory](specs/storage-factory.md) | 🔄 In Progress | High |
 | [SPEC: FileSystem Adapter](specs/filesystem-adapter.md) | ❌ Pending | High |
-| [SPEC: Memory Adapter](specs/memory-adapter.md) | ❌ Pending | Medium |
+| [SPEC: Memory Adapter](specs/memory-adapter.md) | ✅ Completed | Medium |
 | [SPEC: Worker Integration](specs/worker-integration.md) | ❌ Pending | High |
-| [SPEC: SmartImage Optimization](specs/smart-image-optimization.md) | ⚠️ Needs Work | High |
-| [SPEC: ImageEngine Provider](specs/image-engine-provider.md) | ⚠️ Needs Work | High |
+| [SPEC: SmartImage Optimization](specs/smart-image-optimization.md) | ❌ Pending | High |
+| [SPEC: ImageEngine Provider](specs/image-engine-provider.md) | ❌ Pending | High |
 
 ### Already Implemented
 
-| Spec | Status |
-|------|--------|
-| [SPEC: Storage Adapter Interface](../src/core/storage/IStorageAdapter.ts) | ✅ Implemented |
-| [SPEC: IndexedDB Adapter](../src/core/storage/IndexedDBAdapter.ts) | ✅ Implemented |
-| [SPEC: Network Manager](../src/core/NetworkManager.ts) | ✅ Implemented |
-| [SPEC: ImageEngine Core](../src/core/ImageEngine.ts) | ✅ Implemented |
-| [SPEC: SmartImage Component](../src/components/SmartImage.tsx) | ⚠️ Needs Optimization |
-| [SPEC: ImageEngine Provider](../src/components/ImageEngineContext.tsx) | ⚠️ Needs Work |
+| Spec | Status | Notes |
+|------|--------|-------|
+| [SPEC: Project Setup](src/) | ✅ Implemented | Vite + ESM/CJS build |
+| [SPEC: Platform Detector](src/core/platform/PlatformDetector.ts) | ✅ Implemented | Tizen 5.5+, WebOS 6+ |
+| [SPEC: Storage Types](src/core/storage/storage.type.ts) | ✅ Implemented | PlatformCapabilities, StorageType |
+| [SPEC: Memory Adapter](src/core/storage/MemoryAdapter.ts) | ✅ Implemented | Fallback adapter |
+| [SPEC: IStorageAdapter Interface](src/core/storage/storage.type.ts) | ✅ Implemented | Contrato común |
 
 ## Architecture Overview
 
@@ -121,11 +120,11 @@ Cada módulo tiene su propio spec en `docs/specs/`:
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Bundle Size | < 15KB | ~14KB ✅ |
-| Cache Hit Time | < 5ms | ~5-10ms ⚠️ |
-| Main Thread Blocking | < 2ms | Unknown ❌ |
+| Bundle Size | < 15KB | ~3KB (PlatformDetector) ✅ |
+| Cache Hit Time | < 5ms | N/A (no implementado aún) |
+| Main Thread Blocking | < 2ms | N/A |
 | Cache Hit Rate | > 80% | N/A |
-| Re-renders | 0 unnecessary | Unknown ❌ |
+| Re-renders | 0 unnecessary | N/A |
 
 ## Getting Started
 
@@ -398,4 +397,4 @@ jobs:
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: March 2026*

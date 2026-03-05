@@ -61,6 +61,16 @@
       border-radius: 8px;
       overflow-x: auto;
     }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .row div {
+      flex: 1;
+    }
   </style>
 </head>
 
@@ -68,8 +78,20 @@
   <h1>🔍 VYNX Engine - Platform Detector</h1>
 
   <div class="card">
-    <div class="label">DETECTED PLATFORM</div>
-    <div class="value" id="platform">Loading...</div>
+    <div class="row">
+      <div>
+        <div class="label">DETECTED PLATFORM</div>
+        <div class="value" id="platform">Loading...</div>
+      </div>
+      <div>
+        <div class="label">PLATFORM VERSION</div>
+        <div class="value" id="version">Loading...</div>
+      </div>
+      <div>
+        <div class="label">OPTIMAL STORAGE</div>
+        <div class="value" id="storage">Loading...</div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -78,34 +100,43 @@
   </div>
 
   <div class="card">
-    <div class="label">OPTIMAL STORAGE</div>
-    <div class="value" id="storage">Loading...</div>
-  </div>
-
-  <div class="card">
     <div class="label">USER AGENT</div>
     <div class="value" style="font-size: 14px;" id="ua">Loading...</div>
   </div>
 
+  <div class="card">
+    <div class="label">TEST USER AGENT (paste and click Test)</div>
+    <textarea id="test-ua"
+      style="width: 100%; padding: 10px; background: #0f0f23; color: #00d9ff; border: 1px solid #333; border-radius: 4px; font-family: monospace; font-size: 12px;"
+      rows="3"></textarea>
+    <button id="test-btn"
+      style="margin-top: 10px; padding: 10px 20px; background: #00d9ff; color: #1a1a2e; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Test
+      User Agent</button>
+  </div>
+
   <script type="module">
-    import { detectPlatform, getPlatformCapabilities, getOptimalStorageType } from './dist/index.js?v=2';
+    import { detectPlatform, getPlatformCapabilities, getOptimalStorageType, getPlatformVersion } from './dist/index.js?v=8';
 
     async function run() {
-      // Platform
       const platform = detectPlatform();
-      document.getElementById('platform').textContent = platform;
-
-      // User Agent
-      document.getElementById('ua').textContent = navigator.userAgent;
-
-      // Capabilities
+      const platformVersion = getPlatformVersion(platform);
       const capabilities = await getPlatformCapabilities(platform);
-      document.getElementById('capabilities').textContent = JSON.stringify(capabilities, null, 2);
-
-      // Storage
       const storage = getOptimalStorageType(platform, capabilities);
+
+      document.getElementById('platform').textContent = platform;
+      document.getElementById('version').textContent = platformVersion ?? 'N/A';
       document.getElementById('storage').textContent = storage;
+      document.getElementById('ua').textContent = navigator.userAgent;
+      document.getElementById('capabilities').textContent = JSON.stringify(capabilities, null, 2);
     }
+
+    document.getElementById('test-btn').addEventListener('click', () => {
+      const testUA = document.getElementById('test-ua').value;
+      if (testUA) {
+        console.log('Testing with User-Agent:', testUA);
+        alert('User-Agent change requires page reload with DevTools. Check console for detection.');
+      }
+    });
 
     run().catch(console.error);
   </script>

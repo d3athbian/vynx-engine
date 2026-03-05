@@ -1,10 +1,10 @@
-export interface StorageMetadata {
+export type StorageMetadata = {
   url: string;
   size: number;
   mimeType: string;
   timestamp: number;
   expiresAt?: number;
-}
+};
 
 export interface IStorageAdapter {
   save(key: string, data: Blob, metadata: StorageMetadata): Promise<void>;
@@ -16,7 +16,7 @@ export interface IStorageAdapter {
 
 export type StorageType = "indexeddb" | "filesystem" | "memory" | "localstorage";
 
-export interface StorageFactoryOptions {
+export type StorageFactoryOptions = {
   preferredType?: StorageType;
   maxSizeMB?: number;
-}
+};
