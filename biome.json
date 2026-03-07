@@ -24,6 +24,6 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["CHANGELOG.md", "dist/**", "node_modules/**"]
+    "ignore": ["CHANGELOG.md", "package.json", "dist/**", "node_modules/**"]
   }
 }
