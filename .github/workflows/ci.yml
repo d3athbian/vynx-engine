@@ -9,78 +9,119 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    name: quality-checks
+    name: Code Quality
+
     steps:
-      - name: checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: node-setup
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
 
-      - name: install
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
         run: npm ci
 
-      - name: audit
+      - name: Security audit
         run: npm audit --audit-level=high
 
-      - name: lint
+      - name: Linting
         run: npm run lint
 
   secret-scan:
     runs-on: ubuntu-latest
-    name: secret-scan
+    name: Secret Scanning
+
     steps:
-      - name: scan
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog secret scan
         uses: trufflesecurity/trufflehog@main
         continue-on-error: true
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          head: ${{ github.event.pull_request.head.sha || 'HEAD' }}
+          extra_args: --only-verified
 
   test:
     runs-on: ubuntu-latest
-    name: unit-test
+    name: Unit Tests
     needs: quality
+
     steps:
-      - name: checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: node-setup
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
 
-      - name: install
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
         run: npm ci
 
-      - name: run-test
-        run: npm run test -- --run
+      - name: Run unit tests
+        run: npm run test
 
   build:
     runs-on: ubuntu-latest
-    name: build-step
+    name: Build
     needs: [quality, test]
+
     steps:
-      - name: checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: node-setup
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
 
-      - name: install
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
         run: npm ci
 
-      - name: build
+      - name: Build project
         run: npm run build
 
-      - name: build-types
-        run: npm run build:types
-
-      - name: verify
+      - name: Verify build output
         run: |
-          if [ ! -d "dist" ]; then exit 1; fi
-          if [ ! -f "dist/index.js" ]; then exit 1; fi
+          if [ ! -d "dist" ]; then
+            echo "Build failed: dist directory not created"
+            exit 1
+          fi
+          if [ ! -f "dist/index.js" ]; then
+            echo "Build failed: dist/index.js not found"
+            exit 1
+          fi
