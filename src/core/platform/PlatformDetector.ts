@@ -5,7 +5,8 @@ import {
   MIN_WEBOS_VERSION,
   UA_REGEX,
 } from "../config/platform";
-import type { Platform, PlatformCapabilities, StorageType } from "./PlatformDetector.type";
+import type { StorageType } from "../storage/storage.type";
+import type { Platform, PlatformCapabilities } from "./PlatformDetector.type";
 
 function getTizenVersion(): number | null {
   const ua = getUserAgent();
@@ -139,22 +140,23 @@ export function getOptimalStorageType(
   _platform: Platform,
   capabilities: PlatformCapabilities,
 ): StorageType {
-  let storage: StorageType;
-  if (capabilities.isTV && capabilities.supportsFileSystem) {
-    storage = "filesystem";
-  } else if (capabilities.supportsIndexedDB) {
-    storage = "indexeddb";
-  } else {
-    storage = "memory";
+  // 1. Prioridad Absoluta: IndexedDB es el estándar más estable y con mayor cuota en la Web
+  if (capabilities.supportsIndexedDB) {
+    // Excepción conocida: En Smart TVs (Tizen/WebOS), FileSystem suele ser más persistente y tener cuotas fijas mayores
+    if ((_platform === "tizen" || _platform === "webos") && capabilities.supportsFileSystem) {
+      return "filesystem";
+    }
+    return "indexeddb";
   }
-  console.log("[VYNX:PlatformDetector]", {
-    platform: _platform,
-    isTV: capabilities.isTV,
-    supportsFileSystem: capabilities.supportsFileSystem,
-    supportsIndexedDB: capabilities.supportsIndexedDB,
-    selectedStorage: storage,
-  });
-  return storage;
+
+  // 2. Si IndexedDB no está disponible (ej: navegadores muy antiguos o configuraciones restrictivas)
+  // Intentamos usar FileSystem API si está presente
+  if (capabilities.supportsFileSystem) {
+    return "filesystem";
+  }
+
+  // 3. Última opción: Memoria (volátil)
+  return "memory";
 }
 
 export type { Platform, StorageType, PlatformCapabilities };
