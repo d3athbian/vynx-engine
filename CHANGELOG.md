@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/d3athbian/vynx-engine/compare/v1.1.0...v1.2.0) (2026-03-07)
+
+
+### Features
+
+* test new release workflow ([2246a14](https://github.com/d3athbian/vynx-engine/commit/2246a14d0b8fdcea74419f1f35a63f1bcc172c1d))
+
 ## [1.1.0](https://github.com/d3athbian/vynx-engine/compare/v1.0.1...v1.1.0) (2026-03-07)
 
 
