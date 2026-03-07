@@ -143,7 +143,7 @@ export function getOptimalStorageType(
   // 1. Prioridad Absoluta: IndexedDB es el estándar más estable y con mayor cuota en la Web
   if (capabilities.supportsIndexedDB) {
     // Excepción conocida: En Smart TVs (Tizen/WebOS), FileSystem suele ser más persistente y tener cuotas fijas mayores
-    if (_platform === "tizen" || _platform === "webos") {
+    if ((_platform === "tizen" || _platform === "webos") && capabilities.supportsFileSystem) {
       return "filesystem";
     }
     return "indexeddb";
