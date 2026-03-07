@@ -1,4 +1,8 @@
-import { type Platform, type PlatformCapabilities, getOptimalStorageType } from "../platform/PlatformDetector";
+import {
+  type Platform,
+  type PlatformCapabilities,
+  getOptimalStorageType,
+} from "../platform/PlatformDetector";
 import { MemoryAdapter } from "./MemoryAdapter";
 import type { IStorageAdapter, StorageFactoryOptions, StorageMetadata } from "./storage.type";
 
@@ -80,7 +84,7 @@ class IndexedDBAdapter implements IStorageAdapter {
   }
 
   async getQuotaUsage(): Promise<number> {
-    if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
+    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
       const estimate = await navigator.storage.estimate();
       return Math.floor((estimate.usage ?? 0) / (1024 * 1024));
     }
@@ -114,14 +118,16 @@ class FileSystemAdapter implements IStorageAdapter {
         data: file,
         metadata: { url: key, size: file.size, mimeType: file.type, timestamp: Date.now() },
       };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async delete(key: string): Promise<void> {
     try {
       const root = await this.getRoot();
       await root.removeEntry(key);
-    } catch { }
+    } catch {}
   }
 
   async clear(): Promise<void> {
@@ -130,11 +136,11 @@ class FileSystemAdapter implements IStorageAdapter {
       for await (const entry of (root as any).values()) {
         await root.removeEntry(entry.name);
       }
-    } catch { }
+    } catch {}
   }
 
   async getQuotaUsage(): Promise<number> {
-    if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
+    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
       const estimate = await navigator.storage.estimate();
       return Math.floor((estimate.usage ?? 0) / (1024 * 1024));
     }
@@ -146,16 +152,28 @@ function wrapWithFallback(adapter: IStorageAdapter): IStorageAdapter {
   const fallback = new MemoryAdapter();
   return {
     async save(k, d, m) {
-      try { await adapter.save(k, d, m); }
-      catch (e) { console.warn("[VYNX] Fallback a Memoria:", e); await fallback.save(k, d, m); }
+      try {
+        await adapter.save(k, d, m);
+      } catch (e) {
+        console.warn("[VYNX] Fallback a Memoria:", e);
+        await fallback.save(k, d, m);
+      }
     },
     async get(k) {
       const res = await adapter.get(k);
-      return res || await fallback.get(k);
+      return res || (await fallback.get(k));
     },
-    async delete(k) { await adapter.delete(k); await fallback.delete(k); },
-    async clear() { await adapter.clear(); await fallback.clear(); },
-    async getQuotaUsage() { return await adapter.getQuotaUsage(); }
+    async delete(k) {
+      await adapter.delete(k);
+      await fallback.delete(k);
+    },
+    async clear() {
+      await adapter.clear();
+      await fallback.clear();
+    },
+    async getQuotaUsage() {
+      return await adapter.getQuotaUsage();
+    },
   };
 }
 
