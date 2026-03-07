@@ -19,7 +19,7 @@ jobs:
         id: release
         with:
           release-type: node
-          target-branch: master
+          target-branch: main
 
   publish:
     runs-on: ubuntu-latest
