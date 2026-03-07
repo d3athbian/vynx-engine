@@ -53,9 +53,9 @@ jobs:
             exit 1
           fi
 
-  sync-main:
+  sync-master:
     runs-on: ubuntu-latest
-    name: Sync Master to Main
+    name: Sync Main to Master
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     permissions:
@@ -66,14 +66,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
 
       - name: Create Sync PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr create \
-            --base main \
-            --head master \
-            --title "chore: sync master to main after release" \
-            --body "Automated backport of release changes (version bump and changelog) from master to main." || echo "PR already exists or no changes to sync"
+            --base master \
+            --head main \
+            --title "chore: sync main to master after release" \
+            --body "Automated backport of release changes (version bump and changelog) from main to master." || echo "PR already exists or no changes to sync"
