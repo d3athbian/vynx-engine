@@ -12,9 +12,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -47,8 +45,6 @@
     "minimatch": "^10.2.4"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx,json}": [
-      "biome check --write --no-errors-on-unmatched"
-    ]
+    "*.{js,ts,jsx,tsx,json}": ["biome check --write --no-errors-on-unmatched"]
   }
 }
