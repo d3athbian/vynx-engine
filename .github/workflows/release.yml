@@ -43,9 +43,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Build types
-        run: npm run build:types
-
       - name: Verify build
         run: |
           if [ ! -f "dist/index.js" ]; then
