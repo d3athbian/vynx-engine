@@ -53,11 +53,6 @@ jobs:
             exit 1
           fi
 
-      - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
   sync-main:
     runs-on: ubuntu-latest
     name: Sync Master to Main
