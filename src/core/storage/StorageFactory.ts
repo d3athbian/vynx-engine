@@ -133,7 +133,10 @@ class FileSystemAdapter implements IStorageAdapter {
   async clear(): Promise<void> {
     try {
       const root = await this.getRoot();
-      for await (const entry of (root as any).values()) {
+      // Usamos una interfaz extendida para evitar tipos genéricos loose ya que lib.dom.d.ts
+      // a veces no incluye los métodos de iteración de FileSystemDirectoryHandle
+      const entries = root as unknown as AsyncIterable<FileSystemHandle>;
+      for await (const entry of entries) {
         await root.removeEntry(entry.name);
       }
     } catch {}
