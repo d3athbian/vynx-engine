@@ -17,6 +17,11 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
@@ -29,7 +34,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Check if PR already exists
           PR_EXISTS=$(gh pr list --head main --base master --state open --json id -q '. | length')
           if [ "$PR_EXISTS" -eq "0" ]; then
             gh pr create --base master --head main \
