@@ -27,39 +27,25 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Release
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
 
     steps:
-      - name: Determine if publish should run
-        id: check
-        run: |
-          if [ "${{ needs.release-please.outputs.release_created }}" = "true" ]; then
-            echo "RUN_PUBLISH=true" >> $GITHUB_OUTPUT
-          else
-            echo "RUN_PUBLISH=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Checkout code
-        if: ${{ steps.check.outputs.RUN_PUBLISH == 'true' }}
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: ${{ steps.check.outputs.RUN_PUBLISH == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
 
       - name: Install dependencies
-        if: ${{ steps.check.outputs.RUN_PUBLISH == 'true' }}
         run: npm ci
 
       - name: Build
-        if: ${{ steps.check.outputs.RUN_PUBLISH == 'true' }}
         run: npm run build
 
       - name: Verify build
-        if: ${{ steps.check.outputs.RUN_PUBLISH == 'true' }}
         run: |
           if [ ! -f "dist/index.js" ]; then
             echo "Build failed: dist/index.js not found"
@@ -70,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Sync Master to Main
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     permissions:
       contents: write
       pull-requests: write
