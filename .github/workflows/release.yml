@@ -67,12 +67,16 @@ jobs:
         with:
           ref: master
 
+      - name: Install GitHub CLI
+        run: sudo apt-get update && sudo apt-get install gh -y
+
       - name: Create Sync PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          gh auth login --with-token <<< "$GH_TOKEN"
           gh pr create \
             --base main \
             --head master \
             --title "chore: sync master to main after release" \
-            --body "Automated backport of release changes (version bump and changelog) from master to main." || echo "PR already exists or no changes to sync"
+            --body "Automated backport of release changes from master to main." || echo "PR already exists or no changes to sync"
