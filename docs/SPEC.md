@@ -8,6 +8,8 @@
 
 VYNX Engine es una librería de caché de imágenes de alto rendimiento diseñada para aplicaciones donde las imágenes son el producto principal (streaming, e-commerce, galerías). Soporta múltiples plataformas (Web, Tizen, WebOS, WebViews) con detección automática del mejor mecanismo de almacenamiento.
 
+// Release test trigger note: este doc se actualiza para activar pruebas del flujo de release-please
+
 ## Goals
 
 - **Rendimiento**: 60fps constante, cache hit < 5ms
@@ -60,10 +62,10 @@ Cada módulo tiene su propio spec en `docs/specs/`:
 |------|--------|----------|
 | [SPEC: Project Setup - Vite](specs/project-setup-vite.md) | ✅ Completed | High |
 | [SPEC: Platform Detector](specs/platform-detector.md) | ✅ Completed | High |
-| [SPEC: Storage Factory](specs/storage-factory.md) | 🔄 In Progress | High |
-| [SPEC: FileSystem Adapter](specs/filesystem-adapter.md) | ❌ Pending | High |
+| [SPEC: Storage Factory](specs/storage-factory.md) | ✅ Completed | High |
+| [SPEC: FileSystem Adapter](specs/filesystem-adapter.md) | ✅ Completed | High |
 | [SPEC: Memory Adapter](specs/memory-adapter.md) | ✅ Completed | Medium |
-| [SPEC: Worker Integration](specs/worker-integration.md) | ❌ Pending | High |
+| [SPEC: Worker Integration](specs/worker-integration.md) | ✅ Completed | High |
 | [SPEC: SmartImage Optimization](specs/smart-image-optimization.md) | ❌ Pending | High |
 | [SPEC: ImageEngine Provider](specs/image-engine-provider.md) | ❌ Pending | High |
 

@@ -1,0 +1,6 @@
+export const WORKER_TIMEOUT_MS = 30000;
+
+export const WORKER_CONFIG = {
+  DEFAULT_MAX_CONCURRENT: 3,
+  TIMEOUT_MS: WORKER_TIMEOUT_MS,
+} as const;

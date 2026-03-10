@@ -35,6 +35,9 @@ jobs:
       - name: Security audit
         run: npm audit --audit-level=high
 
+      - name: Type checking
+        run: npm run type-check
+
       - name: Linting
         run: npm run lint
 
@@ -84,7 +87,7 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
-        run: npm run test -- --run
+        run: npm run test
 
   build:
     runs-on: ubuntu-latest

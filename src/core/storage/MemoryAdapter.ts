@@ -1,3 +1,4 @@
+import { BYTES_PER_MB } from "../config/platform";
 import type { IStorageAdapter, StorageMetadata } from "./storage.type";
 
 export class MemoryAdapter implements IStorageAdapter {
@@ -24,6 +25,6 @@ export class MemoryAdapter implements IStorageAdapter {
     for (const item of this.cache.values()) {
       total += item.data.size;
     }
-    return Math.floor(total / (1024 * 1024));
+    return Math.floor(total / BYTES_PER_MB);
   }
 }

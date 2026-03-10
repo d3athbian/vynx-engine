@@ -1,5 +1,6 @@
 import { getNavigatorProperty, getUserAgent, getWindowProperty } from "../../utils/browser";
 import {
+  BYTES_PER_MB,
   DEFAULT_QUOTA_MB,
   MIN_TIZEN_VERSION,
   MIN_WEBOS_VERSION,
@@ -78,7 +79,7 @@ async function getStorageQuota(): Promise<number> {
 
     if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
       const estimate = await navigator.storage.estimate();
-      return Math.floor((estimate.quota ?? 0) / (1024 * 1024));
+      return Math.floor((estimate.quota ?? 0) / BYTES_PER_MB);
     }
   } catch {
     // Ignore errors
