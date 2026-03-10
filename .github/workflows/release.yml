@@ -22,7 +22,22 @@ jobs:
         with:
           release-type: node
           target-branch: master
-          primary-branch: main
+          skip-github-pull-request: true
+
+      - name: Create PR if no release
+        if: steps.release.outputs.release_created != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          PR_EXISTS=$(gh pr list --head main --base master --state open --json id -q '. | length')
+          if [ "$PR_EXISTS" -eq "0" ]; then
+            gh pr create --base master --head main \
+              --title "Release: $(date +'%Y-%m-%d')" \
+              --body "Release PR created from main to master"
+          else
+            echo "PR already exists"
+          fi
 
   publish:
     runs-on: ubuntu-latest
@@ -68,8 +83,12 @@ jobs:
         with:
           ref: master
 
-      - name: Install GitHub CLI
-        run: sudo apt-get update && sudo apt-get install gh -y
+      - name: Setup gh CLI
+        run: |
+          if ! command -v gh &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y gh
+          fi
 
       - name: Create Sync PR
         env:
