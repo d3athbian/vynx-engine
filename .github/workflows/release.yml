@@ -2,7 +2,9 @@ name: Release Please
 
 on:
   push:
-    branches: [master]
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
@@ -20,6 +22,8 @@ jobs:
         with:
           release-type: node
           target-branch: master
+          default-branch: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     runs-on: ubuntu-latest
@@ -49,28 +53,3 @@ jobs:
             echo "Build failed: dist/index.js not found"
             exit 1
           fi
-
-  sync-main:
-    runs-on: ubuntu-latest
-    name: Sync Master to Main
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
-    permissions:
-      contents: write
-      pull-requests: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: master
-
-      - name: Create Sync PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create \
-            --base main \
-            --head master \
-            --title "chore: sync master to main after release" \
-            --body "Automated backport of release changes (version bump and changelog) from master to main." || echo "PR already exists or no changes to sync"
