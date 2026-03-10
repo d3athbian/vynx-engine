@@ -16,26 +16,13 @@ jobs:
     name: Release Please
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
-      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
-      - name: Debug - show inputs
-        run: |
-          echo "Debug: Running release-please action"
-          echo "Repository: ${{ github.repository }}"
-          echo "Ref: ${{ github.ref }}"
-      
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: node
           target-branch: master
-          skip-github-pull-request: false
-
-      - name: Debug - show outputs
-        run: |
-          echo "release_created: '${{ steps.release.outputs.release_created }}'"
-          echo "releases_created: '${{ steps.release.outputs.releases_created }}'"
-          echo "All outputs: ${{ toJson(steps.release.outputs) }}"
+          primary-branch: main
 
   publish:
     runs-on: ubuntu-latest
