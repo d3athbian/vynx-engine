@@ -22,7 +22,6 @@ jobs:
         with:
           release-type: node
           target-branch: master
-          default-branch: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
