@@ -30,7 +30,7 @@ jobs:
           skip-github-pull-request: true
 
       - name: Create PR if no release
-        if: steps.release.outputs.release_created != 'true'
+        if: steps.release.outputs.release_created != 'true' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Sync Master to Main
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    if: needs.release-please.outputs.release_created == 'true' && github.ref == 'refs/heads/master'
     permissions:
       contents: write
       pull-requests: write
