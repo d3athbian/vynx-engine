@@ -106,18 +106,8 @@ jobs:
         with:
           ref: master
 
-      - name: Setup gh CLI
-        run: |
-          if ! command -v gh &> /dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y gh
-          fi
-
       - name: Create Sync PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh auth login --with-token <<< "$GH_TOKEN"
           gh pr create \
             --base main \
             --head master \
