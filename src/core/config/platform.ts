@@ -1,5 +1,7 @@
 export const DEFAULT_QUOTA_MB = 100;
 
+export const BYTES_PER_MB = 1024 * 1024;
+
 export const MIN_TIZEN_VERSION = 5.5;
 export const MIN_WEBOS_VERSION = 6;
 

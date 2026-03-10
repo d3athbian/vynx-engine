@@ -1,8 +1,10 @@
+import { BYTES_PER_MB } from "../config/platform";
 import {
   type Platform,
   type PlatformCapabilities,
   getOptimalStorageType,
 } from "../platform/PlatformDetector";
+import { FileSystemAdapter } from "./FileSystemAdapter";
 import { MemoryAdapter } from "./MemoryAdapter";
 import type { IStorageAdapter, StorageFactoryOptions, StorageMetadata } from "./storage.type";
 
@@ -86,66 +88,7 @@ class IndexedDBAdapter implements IStorageAdapter {
   async getQuotaUsage(): Promise<number> {
     if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
       const estimate = await navigator.storage.estimate();
-      return Math.floor((estimate.usage ?? 0) / (1024 * 1024));
-    }
-    return 0;
-  }
-}
-
-class FileSystemAdapter implements IStorageAdapter {
-  private root: FileSystemDirectoryHandle | null = null;
-
-  private async getRoot(): Promise<FileSystemDirectoryHandle> {
-    if (this.root) return this.root;
-    this.root = await navigator.storage.getDirectory();
-    return this.root;
-  }
-
-  async save(key: string, data: Blob, _metadata: StorageMetadata): Promise<void> {
-    const root = await this.getRoot();
-    const fileHandle = await root.getFileHandle(key, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(data);
-    await writable.close();
-  }
-
-  async get(key: string): Promise<{ data: Blob; metadata: StorageMetadata } | null> {
-    try {
-      const root = await this.getRoot();
-      const fileHandle = await root.getFileHandle(key);
-      const file = await fileHandle.getFile();
-      return {
-        data: file,
-        metadata: { url: key, size: file.size, mimeType: file.type, timestamp: Date.now() },
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  async delete(key: string): Promise<void> {
-    try {
-      const root = await this.getRoot();
-      await root.removeEntry(key);
-    } catch {}
-  }
-
-  async clear(): Promise<void> {
-    try {
-      const root = await this.getRoot();
-      // Usamos una interfaz extendida para evitar tipos genéricos loose ya que lib.dom.d.ts
-      // a veces no incluye los métodos de iteración de FileSystemDirectoryHandle
-      const entries = root as unknown as AsyncIterable<FileSystemHandle>;
-      for await (const entry of entries) {
-        await root.removeEntry(entry.name);
-      }
-    } catch {}
-  }
-
-  async getQuotaUsage(): Promise<number> {
-    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
-      const estimate = await navigator.storage.estimate();
-      return Math.floor((estimate.usage ?? 0) / (1024 * 1024));
+      return Math.floor((estimate.usage ?? 0) / BYTES_PER_MB);
     }
     return 0;
   }
