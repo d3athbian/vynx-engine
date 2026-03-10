@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Release Please
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
+      release_created: ${{ steps.release.outputs.release_created || steps.force-release.outputs.release_created }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +28,25 @@ jobs:
           release-type: node
           target-branch: master
           skip-github-pull-request: true
+
+      - name: Force release on master merge
+        if: github.ref == 'refs/heads/master'
+        id: force-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get current version from package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $VERSION"
+          
+          # Create a tag for the release
+          git tag "v$VERSION" || echo "Tag already exists"
+          git push origin "v$VERSION" || echo "Tag push failed"
+          
+          # Create GitHub release
+          gh release create "v$VERSION" --title "Release v$VERSION" --generate-notes || echo "Release may already exist"
+          
+          echo "release_created=true" >> $GITHUB_OUTPUT
 
       - name: Create PR if no release
         if: steps.release.outputs.release_created != 'true' && github.ref == 'refs/heads/main'
