@@ -35,16 +35,42 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get current version from package.json
-          VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $VERSION"
+          # Get latest tag version
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          CURRENT_PKG_VERSION=$(node -p "require('./package.json').version")
           
-          # Create a tag for the release
-          git tag "v$VERSION" || echo "Tag already exists"
-          git push origin "v$VERSION" || echo "Tag push failed"
+          echo "Latest tag: $LATEST_TAG"
+          echo "Package version: $CURRENT_PKG_VERSION"
+          
+          # Extract version numbers
+          LATEST_VERSION=${LATEST_TAG#v}
+          
+          # Check commit types to determine version bump
+          MAJOR=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || HEAD~100)..HEAD --grep "^feat!" --format=%s | wc -l)
+          MINOR=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || HEAD~100)..HEAD --grep "^feat:" --format=%s | wc -l)
+          PATCH=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || HEAD~100)..HEAD --grep "^fix:" --format=%s | wc -l)
+          
+          echo "Commits - major: $MAJOR, minor: $MINOR, patch: $PATCH"
+          
+          # Calculate new version
+          if [ "$MAJOR" -gt "0" ]; then
+            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1+1".0.0"}')
+          elif [ "$MINOR" -gt "0" ]; then
+            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1"."$2+1".0"}')
+          elif [ "$PATCH" -gt "0" ]; then
+            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1"."$2"."$3+1}')
+          else
+            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1"."$2"."$3+1}')
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          
+          # Create new tag
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
           
           # Create GitHub release
-          gh release create "v$VERSION" --title "Release v$VERSION" --generate-notes || echo "Release may already exist"
+          gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --generate-notes
           
           echo "release_created=true" >> $GITHUB_OUTPUT
 
