@@ -65,14 +65,19 @@ jobs:
           
           echo "New version: $NEW_VERSION"
           
-          # Create new tag
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
-          
-          # Create GitHub release
-          gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --generate-notes
-          
-          echo "release_created=true" >> $GITHUB_OUTPUT
+          # Create new tag only if it doesn't exist
+          if ! git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+            git tag "v$NEW_VERSION"
+            git push origin "v$NEW_VERSION"
+            
+            # Create GitHub release
+            gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --generate-notes
+            
+            echo "release_created=true" >> $GITHUB_OUTPUT
+            echo "Created new release v$NEW_VERSION"
+          else
+            echo "Tag v$NEW_VERSION already exists, skipping release creation"
+          fi
 
       - name: Create PR if no release
         if: steps.release.outputs.release_created != 'true' && github.ref == 'refs/heads/main'
@@ -120,7 +125,6 @@ jobs:
   sync-main:
     runs-on: ubuntu-latest
     name: Sync Master to Main
-    needs: release-please
     if: github.ref == 'refs/heads/master'
     permissions:
       contents: write
@@ -131,6 +135,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: master
+
+      - name: Debug info
+        run: |
+          echo "Current branch: ${{ github.ref }}"
+          echo "Creating backport PR from master to main"
 
       - name: Create Sync PR
         run: |
