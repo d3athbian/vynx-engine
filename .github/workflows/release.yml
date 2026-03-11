@@ -56,13 +56,11 @@ jobs:
           # Update package.json with new version
           npm version $NEW_VERSION --no-git-tag-version
           
-          # Commit the version bump
+          # Commit the version bump (no push - already merged)
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "chore: bump version to $NEW_VERSION"
-          
-          # Push the version bump
           git push origin master
           
           # Create new tag
