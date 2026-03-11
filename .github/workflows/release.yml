@@ -36,48 +36,44 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Get latest tag version
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          CURRENT_PKG_VERSION=$(node -p "require('./package.json').version")
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           
-          echo "Latest tag: $LATEST_TAG"
-          echo "Package version: $CURRENT_PKG_VERSION"
+          echo "Latest tag: v$LATEST_TAG"
           
           # Extract version numbers
-          LATEST_VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $LATEST_TAG | cut -d. -f1)
+          MINOR=$(echo $LATEST_TAG | cut -d. -f2)
+          PATCH=$(echo $LATEST_TAG | cut -d. -f3)
           
-          # Check commit types to determine version bump
-          MAJOR=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || HEAD~100)..HEAD --grep "^feat!" --format=%s | wc -l)
-          MINOR=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || HEAD~100)..HEAD --grep "^feat:" --format=%s | wc -l)
-          PATCH=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || HEAD~100)..HEAD --grep "^fix:" --format=%s | wc -l)
+          echo "Current: major=$MAJOR, minor=$MINOR, patch=$PATCH"
           
-          echo "Commits - major: $MAJOR, minor: $MINOR, patch: $PATCH"
-          
-          # Calculate new version
-          if [ "$MAJOR" -gt "0" ]; then
-            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1+1".0.0"}')
-          elif [ "$MINOR" -gt "0" ]; then
-            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1"."$2+1".0"}')
-          elif [ "$PATCH" -gt "0" ]; then
-            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1"."$2"."$3+1}')
-          else
-            NEW_VERSION=$(echo $CURRENT_PKG_VERSION | awk -F. '{print $1"."$2"."$3+1}')
-          fi
+          # Calculate new version - increment patch
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
           
           echo "New version: $NEW_VERSION"
           
-          # Create new tag only if it doesn't exist
-          if ! git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
-            git tag "v$NEW_VERSION"
-            git push origin "v$NEW_VERSION"
-            
-            # Create GitHub release
-            gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --generate-notes
-            
-            echo "release_created=true" >> $GITHUB_OUTPUT
-            echo "Created new release v$NEW_VERSION"
-          else
-            echo "Tag v$NEW_VERSION already exists, skipping release creation"
-          fi
+          # Update package.json with new version
+          npm version $NEW_VERSION --no-git-tag-version
+          
+          # Commit the version bump
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "chore: bump version to $NEW_VERSION"
+          
+          # Push the version bump
+          git push origin master
+          
+          # Create new tag
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+          
+          # Create GitHub release
+          gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --generate-notes
+          
+          echo "release_created=true" >> $GITHUB_OUTPUT
+          echo "Created new release v$NEW_VERSION"
 
       - name: Create PR if no release
         if: steps.release.outputs.release_created != 'true' && github.ref == 'refs/heads/main'
