@@ -55,12 +55,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Get version from package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Package version: $VERSION"
+          
           # Check if PR already exists
           PR_EXISTS=$(gh pr list --head main --base master --state open --json id -q '. | length')
           if [ "$PR_EXISTS" -eq "0" ]; then
             gh pr create --base master --head main \
-              --title "Release: $(git describe --tags --abbrev=0 2>/dev/null || echo 'main')" \
-              --body "Release PR - user should bump version before pushing to main"
+              --title "Release: v$VERSION" \
+              --body "Release v$VERSION"
           else
             echo "PR already exists"
           fi
