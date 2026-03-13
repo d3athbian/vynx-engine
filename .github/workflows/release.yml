@@ -122,5 +122,5 @@ jobs:
           gh pr create \
             --base main \
             --head master \
-            --title "chore: sync master to main after release" \
-            --body "Automated backport of release changes from master to main." || echo "PR already exists or no changes to sync"
+            --title "backport: release v1.3.1 to main" \
+            --body "Automated backport of release from master to main." || echo "PR already exists or no changes to sync"
