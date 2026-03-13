@@ -35,6 +35,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Get version from package.json (already bumped in main)
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "Package version: $CURRENT_VERSION"
+          
+          # Create new tag
+          git tag "v$CURRENT_VERSION"
+          git push origin "v$CURRENT_VERSION"
+          
+          # Create GitHub release
+          gh release create "v$CURRENT_VERSION" --title "Release v$CURRENT_VERSION" --generate-notes
+          
+          echo "release_created=true" >> $GITHUB_OUTPUT
+          echo "Created release v$CURRENT_VERSION"
+
+      - name: Create PR if no release
+        if: steps.release.outputs.release_created != 'true' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           # Get latest tag version
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           
@@ -45,34 +65,30 @@ jobs:
           MINOR=$(echo $LATEST_TAG | cut -d. -f2)
           PATCH=$(echo $LATEST_TAG | cut -d. -f3)
           
-          echo "Current: major=$MAJOR, minor=$MINOR, patch=$PATCH"
-          
           # Calculate new version - increment patch
           NEW_PATCH=$((PATCH + 1))
           NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
           
           echo "New version: $NEW_VERSION"
           
-          # Create new tag (commit already on master after merge)
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
+          # Update package.json with new version
+          npm version $NEW_VERSION --no-git-tag-version
           
-          # Create GitHub release
-          gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --generate-notes
+          # Commit the version bump
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "chore: bump version to $NEW_VERSION"
           
-          echo "release_created=true" >> $GITHUB_OUTPUT
-          echo "Created new release v$NEW_VERSION"
-
-      - name: Create PR if no release
-        if: steps.release.outputs.release_created != 'true' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+          # Push version bump to main
+          git push origin main
+          
+          # Create PR to master
           PR_EXISTS=$(gh pr list --head main --base master --state open --json id -q '. | length')
           if [ "$PR_EXISTS" -eq "0" ]; then
             gh pr create --base master --head main \
-              --title "Release: $(date +'%Y-%m-%d')" \
-              --body "Release PR created from main to master"
+              --title "Release: v$NEW_VERSION" \
+              --body "Release v$NEW_VERSION - auto-bumped from v$LATEST_TAG"
           else
             echo "PR already exists"
           fi
