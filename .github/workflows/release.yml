@@ -30,6 +30,12 @@ jobs:
           skip-github-pull-request: true
 
       # On master: create release and bump version
+      - name: Setup Node.js
+        if: github.ref == 'refs/heads/master'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Create release on master merge
         if: github.ref == 'refs/heads/master'
         id: force-release
@@ -41,7 +47,7 @@ jobs:
           
           # Create tag and release
           git tag "v$CURRENT_VERSION"
-          git push origin "v$CURRENT_VERSION"
+          git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git "v$CURRENT_VERSION"
           gh release create "v$CURRENT_VERSION" --title "Release v$CURRENT_VERSION" --generate-notes
           
           # Calculate next version
@@ -53,12 +59,12 @@ jobs:
           echo "Next version: $NEXT_VERSION"
           
           # Bump version
-          npm version $NEXT_VERSION --no-git-tag-version
+          npm version $NEXT_VERSION --no-git-tag-version --ignore-scripts
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "chore: bump version to $NEXT_VERSION"
-          git push origin master
+          git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git master
           
           echo "release_created=true" >> $GITHUB_OUTPUT
           echo "Created release v$CURRENT_VERSION, bumped to $NEXT_VERSION"
