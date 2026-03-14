@@ -62,6 +62,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "chore: bump version to $NEXT_VERSION"
+          git pull --rebase https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git main
           git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git HEAD:main
           
           echo "release_created=true" >> $GITHUB_OUTPUT
