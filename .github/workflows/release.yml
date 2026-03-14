@@ -50,8 +50,7 @@ jobs:
         if: steps.check.outputs.has_changes == 'true'
         id: version
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          VERSION="${LATEST_TAG#v}"
+          VERSION=$(node -p "require('./package.json').version")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
           if [ "${{ steps.check.outputs.has_feat }}" -gt 0 ]; then
@@ -142,8 +141,7 @@ jobs:
         if: steps.check.outputs.has_changes == 'true'
         id: bump
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          VERSION="${LATEST_TAG#v}"
+          VERSION=$(node -p "require('./package.json').version")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
           if [ "${{ steps.check.outputs.has_feat }}" -gt 0 ]; then
