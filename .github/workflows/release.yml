@@ -30,6 +30,12 @@ jobs:
           skip-github-pull-request: true
 
       # On master: create release and bump version
+      - name: Setup Node.js
+        if: github.ref == 'refs/heads/master'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Create release on master merge
         if: github.ref == 'refs/heads/master'
         id: force-release
@@ -65,6 +71,12 @@ jobs:
           echo "Created release v$CURRENT_VERSION, bumped to $NEXT_VERSION"
 
       # On main: bump version and create PR to master
+      - name: Setup Node.js
+        if: github.ref == 'refs/heads/main'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Bump version and create PR to master
         if: github.ref == 'refs/heads/main'
         env:
@@ -73,7 +85,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "Package version: $VERSION"
           
-          npm install --package-lock-only
+          npm install --package-lock-only --ignore-scripts
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add package.json package-lock.json
