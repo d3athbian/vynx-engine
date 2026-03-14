@@ -45,9 +45,7 @@ jobs:
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "Package version: $CURRENT_VERSION"
           
-          # Create tag and release
-          git tag "v$CURRENT_VERSION"
-          git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git "v$CURRENT_VERSION"
+          # Create release (automatically creates tag)
           gh release create "v$CURRENT_VERSION" --title "Release v$CURRENT_VERSION" --generate-notes
           
           # Calculate next version
