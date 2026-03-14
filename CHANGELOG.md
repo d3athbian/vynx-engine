@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/d3athbian/vynx-engine/compare/vynx-engine-v1.1.0...vynx-engine-v1.1.1) (2026-03-14)
+
+
+### Bug Fixes
+
+* backport uses merge branch with auto-resolve to prevent conflicts ([32f9c16](https://github.com/d3athbian/vynx-engine/commit/32f9c1666adedc668b56a7163e3d321efa526aa5))
+
 ## [1.1.0](https://github.com/d3athbian/vynx-engine/compare/vynx-engine-v1.0.0...vynx-engine-v1.1.0) (2026-03-14)
 
 
