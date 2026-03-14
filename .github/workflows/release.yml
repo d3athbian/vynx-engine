@@ -236,10 +236,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Merge master into a branch from main — auto-resolve conflicts with master's version
-          git checkout -b "$BACKPORT_BRANCH" origin/main
-          git merge origin/master -X theirs --no-edit \
-            -m "chore: backport $TAG to main"
+          git fetch origin master
+          git checkout -b "$BACKPORT_BRANCH" origin/master
 
           git push origin "$BACKPORT_BRANCH"
 
