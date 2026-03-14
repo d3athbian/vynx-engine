@@ -62,17 +62,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GABO_IA }}
 
       - name: Create backport PR
         env:
           GH_TOKEN: ${{ secrets.GABO_IA }}
         run: |
           TAG="${{ needs.release-please.outputs.tag_name }}"
+          BACKPORT_BRANCH="backport/${TAG}"
           echo "Backporting release $TAG to main"
 
-          PR_EXISTS=$(gh pr list --head master --base main --state open --json id -q '. | length')
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create backport branch from main, merge master with auto-resolve
+          git checkout -b "$BACKPORT_BRANCH" origin/main
+          git merge origin/master -X theirs --no-edit \
+            -m "chore: backport $TAG to main"
+
+          git push origin "$BACKPORT_BRANCH"
+
+          # Create PR from backport branch to main
+          PR_EXISTS=$(gh pr list --head "$BACKPORT_BRANCH" --base main --state open --json id -q '. | length')
           if [ "$PR_EXISTS" -eq "0" ]; then
-            gh pr create --base main --head master \
+            gh pr create --base main --head "$BACKPORT_BRANCH" \
               --title "chore: backport $TAG to main" \
               --body "Backport release $TAG — syncs version bump and changelog to main."
           else
