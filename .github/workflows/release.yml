@@ -54,23 +54,31 @@ jobs:
           
           # Bump version
           npm version $NEXT_VERSION --no-git-tag-version
+          npm install --package-lock-only
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add package.json
+          git add package.json package-lock.json
           git commit -m "chore: bump version to $NEXT_VERSION"
           git push origin master
           
           echo "release_created=true" >> $GITHUB_OUTPUT
           echo "Created release v$CURRENT_VERSION, bumped to $NEXT_VERSION"
 
-      # On main: create PR to master (no version change)
-      - name: Create PR from main to master
+      # On main: bump version and create PR to master
+      - name: Bump version and create PR to master
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GABO_IA }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "Package version: $VERSION"
+          
+          npm install --package-lock-only
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json package-lock.json
+          git commit -m "chore: prepare release v$VERSION"
+          git push origin main
           
           PR_EXISTS=$(gh pr list --head main --base master --state open --json id -q '. | length')
           if [ "$PR_EXISTS" -eq "0" ]; then
