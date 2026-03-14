@@ -1,5 +1,7 @@
 # SPEC: SmartImage Component Optimization
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 Optimizar el componente SmartImage para evitar re-renders innecesarios y mantener 60fps.

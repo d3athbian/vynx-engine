@@ -1,5 +1,7 @@
 # SPEC: Memory Adapter
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 Adapter de almacenamiento en memoria como fallback último o para WebViews simples.

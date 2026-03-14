@@ -1,5 +1,7 @@
 # SPEC: Platform Detector
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 Sistema de detección automática de plataforma para seleccionar el mejor adapter de almacenamiento.
@@ -170,11 +172,11 @@ export * from './core/platform/PlatformDetector';
 
 ```bash
 # Compila
-bun run build
+npm run build
 
 # Tipos correctos
 npx tsc --noEmit
 
-# No hay errores de lint
-bun run lint
+# Lint
+npx biome check .
 ```

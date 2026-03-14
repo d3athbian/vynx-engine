@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VYNX Engine - Storage Lab</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #f1f5f9;
+      --primary: #38bdf8;
+      --success: #4ade80;
+      --error: #f87171;
+      --warning: #fbbf24;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--panel);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    h1,
+    h2 {
+      color: var(--primary);
+      margin-top: 0;
+    }
+
+    .log-container {
+      background: #000;
+      border-radius: 8px;
+      padding: 1rem;
+      height: 350px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    .log-entry {
+      margin-bottom: 0.25rem;
+      border-left: 3px solid #334155;
+      padding-left: 8px;
+    }
+
+    .log-entry.success {
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    .log-entry.error {
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .log-entry.warning {
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+
+    .banner {
+      background: var(--error);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: none;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    button {
+      background: #334155;
+      color: white;
+      border: none;
+      padding: 0.7rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: #000;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cors-warning" class="banner">
+    ⚠️ ERROR: Los módulos JS no funcionan con file://. <br>
+    Ejecuta "npx vite" o un servidor local para probar.
+  </div>
+
+  <h1>🚀 VYNX Storage Lab</h1>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <div class="card">
+      <h2>Detección</h2>
+      <div id="adapter-info">Iniciando motor...</div>
+      <div id="adapter-type" style="font-weight: bold; color: var(--success); font-size: 1.2rem; margin-top: 0.5rem;">
+        Cargando...</div>
+    </div>
+    <div class="card">
+      <h2>Hardware Specs</h2>
+      <pre id="specs" style="font-size: 0.7rem; margin: 0; opacity: 0.8;">Esperando...</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Acciones CRUD</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      <button id="btnSave" disabled>💾 Guardar</button>
+      <button id="btnGet" disabled>🔍 Recuperar</button>
+      <button id="btnDelete" disabled>🗑️ Borrar</button>
+      <button id="btnDiag" class="primary" disabled>🧪 Ejecutar Diagnóstico Integral</button>
+    </div>
+  </div>
+
+  <div class="log-container" id="terminal"></div>
+
+  <script type="module">
+    const log = (msg, type = '') => {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      document.getElementById('terminal').appendChild(entry);
+      document.getElementById('terminal').scrollTop = 99999;
+    };
+
+    // Validar protocolo
+    if (window.location.protocol === 'file:') {
+      document.getElementById('cors-warning').style.display = 'block';
+      log('ALERTA: Protocolo file:// detectado. Las importaciones fallarán.', 'error');
+    }
+
+    log('Intentando cargar VYNX Engine desde /dist/index.js...', 'info');
+
+    try {
+      // Importación dinámica
+      const VYNX = await import('./dist/index.js');
+      log('✅ Librería VYNX cargada con éxito.', 'success');
+
+      // 1. Detectar Entorno
+      const platform = VYNX.detectPlatform();
+      const capabilities = await VYNX.getPlatformCapabilities(platform);
+
+      log(`Plataforma detectada: ${platform.toUpperCase()}`);
+      document.getElementById('specs').textContent = JSON.stringify(capabilities, null, 2);
+
+      // 2. Inicializar Storage (El motor elegirá IndexedDB en Web por defecto)
+      const adapter = VYNX.StorageFactory.createAdapter(platform, capabilities);
+      const chosenType = VYNX.getOptimalStorageType(platform, capabilities);
+
+      document.getElementById('adapter-type').textContent = chosenType.toUpperCase();
+      log(`Motor sincronizado. Adaptador activo: ${chosenType.toUpperCase()}`, 'success');
+
+      // Exportar para debug en consola (F12)
+      window.adapter = adapter;
+      window.VYNX = VYNX;
+
+      // Habilitar Botones
+      document.querySelectorAll('button').forEach(b => b.disabled = false);
+
+      // Handlers
+      document.getElementById('btnSave').onclick = async () => {
+        const data = new Blob(['VYNX Data: ' + Math.random()], { type: 'text/plain' });
+        await adapter.save('test-key', data, { url: '', size: 0, mimeType: '', timestamp: Date.now() });
+        log('✅ Guardado en IndexedDB: test-key', 'success');
+      };
+
+      document.getElementById('btnGet').onclick = async () => {
+        const res = await adapter.get('test-key');
+        if (res) {
+          const txt = await res.data.text();
+          log(`🔍 Recuperado: "${txt}"`, 'success');
+        } else {
+          log('⚠️ No se encontró la clave "test-key"', 'warning');
+        }
+      };
+
+      document.getElementById('btnDelete').onclick = async () => {
+        await adapter.delete('test-key');
+        log('🗑️ Clave "test-key" eliminada.');
+      };
+
+      document.getElementById('btnDiag').onclick = async () => {
+        log('🧪 Iniciando diagnóstico...', 'info');
+        const k = 'diag-' + Date.now();
+        const content = 'VALIDATION-' + Math.random();
+        try {
+          await adapter.save(k, new Blob([content]), { url: 'd', size: 0, mimeType: 't', timestamp: 0 });
+          const res = await adapter.get(k);
+          const txt = await res?.data.text();
+          if (res && txt === content) {
+            log('✨ DIAGNÓSTICO EXITOSO: El flujo CRUD es correcto.', 'success');
+            await adapter.delete(k);
+          } else {
+            throw new Error('Diferencia de datos en verificación.');
+          }
+        } catch (e) {
+          log('🛑 FALLO: ' + e.message, 'error');
+        }
+      };
+
+    } catch (e) {
+      log('❌ ERROR DE IMPORTACIÓN: No se pudo cargar ./dist/index.js. Verifique si existe el archivo.', 'error');
+      console.error(e);
+    }
+  </script>
+</body>
+
+</html>

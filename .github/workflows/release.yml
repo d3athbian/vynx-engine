@@ -1,0 +1,135 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    name: Release Please
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created || steps.force-release.outputs.release_created }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          target-branch: master
+          skip-github-pull-request: true
+
+      # On master: create release and bump version
+      - name: Create release on master merge
+        if: github.ref == 'refs/heads/master'
+        id: force-release
+        env:
+          GH_TOKEN: ${{ secrets.GABO_IA }}
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Package version: $CURRENT_VERSION"
+          
+          # Create tag and release
+          git tag "v$CURRENT_VERSION"
+          git push origin "v$CURRENT_VERSION"
+          gh release create "v$CURRENT_VERSION" --title "Release v$CURRENT_VERSION" --generate-notes
+          
+          # Calculate next version
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_VERSION="$MAJOR.$MINOR.$NEXT_PATCH"
+          echo "Next version: $NEXT_VERSION"
+          
+          # Bump version
+          npm version $NEXT_VERSION --no-git-tag-version
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "chore: bump version to $NEXT_VERSION"
+          git push origin master
+          
+          echo "release_created=true" >> $GITHUB_OUTPUT
+          echo "Created release v$CURRENT_VERSION, bumped to $NEXT_VERSION"
+
+      # On main: create PR to master (no version change)
+      - name: Create PR from main to master
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GABO_IA }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Package version: $VERSION"
+          
+          PR_EXISTS=$(gh pr list --head main --base master --state open --json id -q '. | length')
+          if [ "$PR_EXISTS" -eq "0" ]; then
+            gh pr create --base master --head main \
+              --title "Release: v$VERSION" \
+              --body "Release v$VERSION"
+          else
+            echo "PR already exists"
+          fi
+
+  publish:
+    runs-on: ubuntu-latest
+    name: Build Release
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build
+        run: |
+          if [ ! -f "dist/index.js" ]; then
+            echo "Build failed: dist/index.js not found"
+            exit 1
+          fi
+
+  sync-main:
+    runs-on: ubuntu-latest
+    name: Sync Master to Main
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Create Sync PR
+        env:
+          GH_TOKEN: ${{ secrets.GABO_IA }}
+        run: |
+          gh pr create \
+            --base main \
+            --head master \
+            --title "backport: release to main" \
+            --body "Automated backport of release from master to main." || echo "PR already exists"

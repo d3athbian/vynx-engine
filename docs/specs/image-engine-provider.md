@@ -1,8 +1,32 @@
 # SPEC: ImageEngine Provider
 
+> **Nota**: Esta librería debe poder ejecutarse en navegadores reales y emuladores de Smart TVs (Tizen, WebOS). Por cada spec cumplido, debemos poder ver mediante console logs la ejecución y demos del progreso.
+
 ## Overview
 
 El Provider debe instanciar y compartir el motor de caché eficientemente sin causar re-renders en los children.
+
+## 🎯 Integración con Storage
+
+El ImageEngine **NO conoce la implementación de storage** - solo usa la interfaz `IStorageAdapter`. El Provider delega la selección del adapter a `StorageFactory`:
+
+```
+ImageEngineProvider
+       │
+       ▼
+┌──────────────────┐
+│  StorageFactory  │  ← Detecta plataforma
+│  (createAdapter) │
+└──────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│     IStorageAdapter          │  ← Interfaz común
+│  save() → get() → delete()  │
+└─────────────────────────────┘
+```
+
+El ImageEngine usa el adapter sin saber si es IndexedDB, FileSystem o Memory.
 
 ## Problem
 
