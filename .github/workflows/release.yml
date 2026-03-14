@@ -97,27 +97,3 @@ jobs:
             echo "Build failed: dist/index.js not found"
             exit 1
           fi
-
-  sync-main:
-    runs-on: ubuntu-latest
-    name: Sync Master to Main
-    if: github.ref == 'refs/heads/master'
-    permissions:
-      contents: write
-      pull-requests: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: master
-
-      - name: Create Sync PR
-        env:
-          GH_TOKEN: ${{ secrets.GABO_IA }}
-        run: |
-          gh pr create \
-            --base main \
-            --head master \
-            --title "backport: release to main" \
-            --body "Automated backport of release from master to main." || echo "PR already exists"
