@@ -56,14 +56,14 @@ jobs:
           NEXT_VERSION="$MAJOR.$MINOR.$NEXT_PATCH"
           echo "Next version: $NEXT_VERSION"
           
-          # Bump version and push to main
+          # Bump version and create PR to main
           npm version $NEXT_VERSION --no-git-tag-version --ignore-scripts
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "chore: bump version to $NEXT_VERSION"
-          git pull --rebase https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git main
-          git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git HEAD:main
+          git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git HEAD:refs/heads/bump-$NEXT_VERSION -f
+          gh pr create --base main --head bump-$NEXT_VERSION --title "chore: bump version to $NEXT_VERSION" --body "Auto-bump version after release"
           
           echo "release_created=true" >> $GITHUB_OUTPUT
           echo "Created release v$CURRENT_VERSION, bumped to $NEXT_VERSION"
