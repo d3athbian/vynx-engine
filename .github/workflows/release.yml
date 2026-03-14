@@ -9,28 +9,190 @@ permissions:
   pull-requests: write
 
 jobs:
-  release-please:
+  # ─── On push to main: detect feat/fix commits and create Release PR → master ───
+  prepare-release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    name: Release Please
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          token: ${{ secrets.GABO_IA }}
-          target-branch: master
+    name: Prepare Release PR
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for releasable commits
+        id: check
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${LATEST_TAG}..HEAD"
+          fi
+
+          # Only match conventional commit prefixes: feat(...): or fix(...):
+          HAS_FEAT=$(git log --format="%s" $RANGE | grep -cE "^feat(\(.*\))?!?:" || true)
+          HAS_FIX=$(git log --format="%s" $RANGE | grep -cE "^fix(\(.*\))?!?:" || true)
+
+          echo "has_feat=$HAS_FEAT" >> $GITHUB_OUTPUT
+          echo "has_fix=$HAS_FIX" >> $GITHUB_OUTPUT
+
+          if [ "$HAS_FEAT" -gt 0 ] || [ "$HAS_FIX" -gt 0 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No feat/fix commits since ${LATEST_TAG:-beginning} — skipping"
+          fi
+
+      - name: Calculate next version
+        if: steps.check.outputs.has_changes == 'true'
+        id: version
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          if [ "${{ steps.check.outputs.has_feat }}" -gt 0 ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEXT="$MAJOR.$MINOR.$PATCH"
+
+          # Don't create PR if this version was already released
+          if git rev-parse "v$NEXT" >/dev/null 2>&1; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Tag v$NEXT already exists — skipping"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "next_version=$NEXT" >> $GITHUB_OUTPUT
+            echo "Next version: v$NEXT"
+          fi
+
+      - name: Create or update Release PR
+        if: steps.check.outputs.has_changes == 'true' && steps.version.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GABO_IA }}
+          VERSION: ${{ steps.version.outputs.next_version }}
+        run: |
+          PR_NUMBER=$(gh pr list --head main --base master --state open --json number -q '.[0].number')
+
+          if [ -z "$PR_NUMBER" ]; then
+            gh pr create --base master --head main \
+              --title "Release v$VERSION" \
+              --body "## Release v$VERSION
+
+          Automated release PR. Merge to master when ready to publish."
+          else
+            gh pr edit "$PR_NUMBER" \
+              --title "Release v$VERSION"
+            echo "Updated existing PR #$PR_NUMBER title to Release v$VERSION"
+          fi
+
+  # ─── On push to master: create release + tag + backport ───
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    name: Create Release
+    outputs:
+      release_created: ${{ steps.create-release.outputs.release_created }}
+      tag_name: ${{ steps.bump.outputs.tag_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GABO_IA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Check for releasable commits
+        id: check
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${LATEST_TAG}..HEAD"
+          fi
+
+          HAS_FEAT=$(git log --format="%s" $RANGE | grep -cE "^feat(\(.*\))?!?:" || true)
+          HAS_FIX=$(git log --format="%s" $RANGE | grep -cE "^fix(\(.*\))?!?:" || true)
+
+          echo "has_feat=$HAS_FEAT" >> $GITHUB_OUTPUT
+          echo "has_fix=$HAS_FIX" >> $GITHUB_OUTPUT
+
+          if [ "$HAS_FEAT" -gt 0 ] || [ "$HAS_FIX" -gt 0 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No feat/fix commits since ${LATEST_TAG:-beginning} — skipping release"
+          fi
+
+      - name: Bump version, tag, and push
+        if: steps.check.outputs.has_changes == 'true'
+        id: bump
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          if [ "${{ steps.check.outputs.has_feat }}" -gt 0 ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEXT="$MAJOR.$MINOR.$PATCH"
+          echo "tag_name=v$NEXT" >> $GITHUB_OUTPUT
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          npm version "$NEXT" --no-git-tag-version
+          git add package.json package-lock.json
+          git commit -m "chore: release v$NEXT"
+          git tag "v$NEXT"
+          git push --follow-tags
+
+          echo "✅ Released v$NEXT"
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.has_changes == 'true'
+        id: create-release
+        env:
+          GH_TOKEN: ${{ secrets.GABO_IA }}
+          TAG: ${{ steps.bump.outputs.tag_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "Release $TAG" \
+            --generate-notes \
+            --target master
+
+          echo "release_created=true" >> $GITHUB_OUTPUT
+
+  # ─── Build verification after release ───
   publish:
     runs-on: ubuntu-latest
     name: Build Release
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    needs: release
+    if: ${{ needs.release.outputs.release_created == 'true' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: master
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,11 +213,12 @@ jobs:
             exit 1
           fi
 
+  # ─── Backport version bump to main ───
   backport:
     runs-on: ubuntu-latest
     name: Backport to main
-    needs: [release-please, publish]
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    needs: [release, publish]
+    if: ${{ needs.release.outputs.release_created == 'true' }}
 
     steps:
       - name: Checkout code
@@ -67,27 +230,26 @@ jobs:
       - name: Create backport PR
         env:
           GH_TOKEN: ${{ secrets.GABO_IA }}
+          TAG: ${{ needs.release.outputs.tag_name }}
         run: |
-          TAG="${{ needs.release-please.outputs.tag_name }}"
           BACKPORT_BRANCH="backport/${TAG}"
-          echo "Backporting release $TAG to main"
+          echo "Backporting $TAG to main"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Create backport branch from main, merge master with auto-resolve
+          # Merge master into a branch from main — auto-resolve conflicts with master's version
           git checkout -b "$BACKPORT_BRANCH" origin/main
           git merge origin/master -X theirs --no-edit \
             -m "chore: backport $TAG to main"
 
           git push origin "$BACKPORT_BRANCH"
 
-          # Create PR from backport branch to main
           PR_EXISTS=$(gh pr list --head "$BACKPORT_BRANCH" --base main --state open --json id -q '. | length')
           if [ "$PR_EXISTS" -eq "0" ]; then
             gh pr create --base main --head "$BACKPORT_BRANCH" \
               --title "chore: backport $TAG to main" \
-              --body "Backport release $TAG — syncs version bump and changelog to main."
+              --body "Backport release $TAG — syncs version bump to main."
           else
             echo "Backport PR already exists, skipping"
           fi
