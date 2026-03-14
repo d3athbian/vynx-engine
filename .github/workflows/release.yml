@@ -48,24 +48,8 @@ jobs:
           # Create release (automatically creates tag)
           gh release create "v$CURRENT_VERSION" --title "Release v$CURRENT_VERSION" --generate-notes
           
-          # Calculate next version
-          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
-          NEXT_PATCH=$((PATCH + 1))
-          NEXT_VERSION="$MAJOR.$MINOR.$NEXT_PATCH"
-          echo "Next version: $NEXT_VERSION"
-          
-          # Bump version and push directly to main (no PR)
-          npm version $NEXT_VERSION --no-git-tag-version --ignore-scripts
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git add package.json
-          git commit -m "chore: bump version to $NEXT_VERSION"
-          git push https://x-access-token:${{ secrets.GABO_IA }}@github.com/d3athbian/vynx-engine.git HEAD:main
-          
           echo "release_created=true" >> $GITHUB_OUTPUT
-          echo "Created release v$CURRENT_VERSION, bumped to $NEXT_VERSION"
+          echo "Created release v$CURRENT_VERSION"
 
       # On main: create PR to master (no version change)
       - name: Create PR from main to master
