@@ -78,14 +78,30 @@ jobs:
           GH_TOKEN: ${{ secrets.GABO_IA }}
           VERSION: ${{ steps.version.outputs.next_version }}
         run: |
-          PR_NUMBER=$(gh pr list --head main --base master --state open --json number -q '.[0].number')
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          RELEASE_BRANCH="release/v$VERSION"
+          
+          if [ -z "$LATEST_TAG" ]; then
+            START_POINT="origin/master"
+          else
+            START_POINT="$LATEST_TAG"
+          fi
+          
+          git checkout -b "$RELEASE_BRANCH" "$START_POINT"
+          git merge origin/main --no-edit --no-ff
+          
+          git push origin "$RELEASE_BRANCH" --force
+
+          PR_NUMBER=$(gh pr list --head "$RELEASE_BRANCH" --base master --state open --json number -q '.[0].number')
 
           if [ -z "$PR_NUMBER" ]; then
-            gh pr create --base master --head main \
+            gh pr create --base master --head "$RELEASE_BRANCH" \
               --title "Release v$VERSION" \
-              --body "## Release v$VERSION
-
-          Automated release PR. Merge to master when ready to publish."
+              --body "Release v$VERSION - Automated release PR. Merge to master when ready to publish."
           else
             gh pr edit "$PR_NUMBER" \
               --title "Release v$VERSION"
